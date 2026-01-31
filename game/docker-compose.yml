@@ -1,0 +1,11 @@
+version: "2"
+services:
+    agar:
+        build: .
+        ports:
+            - 3000:3000
+            - 3001:3001
+        volumes:
+            - ./db:/usr/src/app/bin/server/db
+        environment:
+            - SUPER_ADMIN_PASS=${SUPER_ADMIN_PASS:-superadmin123}

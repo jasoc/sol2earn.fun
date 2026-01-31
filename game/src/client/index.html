@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Meta Properties -->
+    <meta charset="UTF-8">
+    <title>Agar.io Clone</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0a0a1a">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/main.css" />
+    <!-- Audio -->
+    <audio id="split_cell" src="audio/split.mp3"></audio>
+    <audio id="spawn_cell" src="audio/spawn.mp3"></audio>
+</head>
+<body>
+    <div id="gameAreaWrapper">
+        <div id="status"><span class="title">🏆 Leaderboard</span></div>
+        <div class="chatbox" id="chatbox">
+            <ul id="chatList" class="chat-list"></ul>
+            <input id="chatInput" type="text" class="chat-input" placeholder="Type a message..." maxlength="35" />
+        </div>
+        <!-- Debug Menu (F1 to toggle) -->
+        <div id="debugMenu" class="debug-menu" style="display: none;">
+            <div class="debug-title">🛠️ Debug Console</div>
+            <div class="debug-section">
+                <span class="debug-label">Mass Control</span>
+                <button class="debug-btn" id="debugAddMass100">+100</button>
+                <button class="debug-btn" id="debugAddMass500">+500</button>
+                <button class="debug-btn" id="debugAddMass1000">+1K</button>
+                <button class="debug-btn" id="debugSetMass">Set...</button>
+            </div>
+            <div class="debug-section">
+                <span class="debug-label">Teleport</span>
+                <button class="debug-btn" id="debugTeleportCenter">📍 Center</button>
+                <button class="debug-btn" id="debugTeleportRandom">🎲 Random</button>
+                <button class="debug-btn" id="debugTeleportCustom">✏️ Custom</button>
+            </div>
+            <div class="debug-section">
+                <span class="debug-label">Actions</span>
+                <button class="debug-btn" id="debugMerge">🔗 Merge</button>
+                <button class="debug-btn" id="debugSpawnVirus">🦠 Virus</button>
+                <button class="debug-btn danger" id="debugKillAll">💀 Kill All</button>
+            </div>
+            <div class="debug-info" id="debugInfo">
+                Position: <span id="debugPosX">0</span>, <span id="debugPosY">0</span><br>
+                Mass: <span id="debugMassTotal">0</span> | Cells: <span id="debugCellCount">0</span>
+            </div>
+        </div>
+        <div id="mobile">
+           <input type="image" id="split" class="split" src="img/split.png" alt="splitBtn">
+           <input type="image" id="feed" class="feed" src="img/feed.png" alt="feedBtn">
+        </div>
+        <canvas tabindex="1" id="cvs"></canvas>
+    </div>
+    <div id="startMenuWrapper">
+        <div id="startMenu">
+            <p>🎮 Agar Clone</p>
+            <input type="text" tabindex="0" autofocus placeholder="Enter your nickname" id="playerNameInput" maxlength="25" />
+            <b class="input-error">Nickname must be alphanumeric only!</b>
+            <button id="startButton">▶ Play Now</button>
+            <button id="spectateButton">👁 Spectate</button>
+            <button id="settingsButton">⚙ Settings</button>
+            <div id="settings">
+                <h3>⚙ Settings</h3>
+                <ul>
+                    <label><input id="visBord" type="checkbox"> Show game border</label>
+                    <label><input id="showMass" type="checkbox"> Show cell mass</label>
+                    <label><input id="continuity" type="checkbox"> Continue moving off-screen</label>
+                    <label><input id="roundFood" type="checkbox" checked> Rounded food particles</label>
+                </ul>
+            </div>
+            <div id="instructions">
+                <h3>📖 How to Play</h3>
+                <ul>
+                    <li>Move your mouse to control your cell</li>
+                    <li>Eat food and smaller players to grow</li>
+                    <li>Press <b>Space</b> to split your cell</li>
+                    <li>Press <b>W</b> to eject mass</li>
+                    <li>Avoid larger players and viruses!</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- JS -->
+    <script src="//code.jquery.com/jquery-2.2.0.min.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
