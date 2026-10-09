@@ -524,3 +524,332 @@ div {
     0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.3); }
     50% { box-shadow: 0 0 40px rgba(0, 255, 136, 0.5); }
 }
+
+@keyframes pulseGold {
+    0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
+    50% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.6); }
+}
+
+/* ========== Wallet Connect UI ========== */
+
+.menu-step {
+    margin-bottom: 20px;
+}
+
+.wallet-btn {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, #ab47bc, #7b1fa2);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wallet-btn:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 35px rgba(171, 71, 188, 0.5);
+}
+
+.wallet-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.wallet-status {
+    text-align: center;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 10px;
+    min-height: 20px;
+}
+
+.wallet-status.wallet-error {
+    color: #ff6b6b;
+}
+
+.wallet-error {
+    text-align: center;
+    font-size: 13px;
+    color: #ff6b6b;
+    margin-top: 12px;
+    padding: 12px;
+    background: rgba(255, 68, 68, 0.1);
+    border: 1px solid rgba(255, 68, 68, 0.2);
+    border-radius: 10px;
+}
+
+.wallet-error a {
+    color: #00d4ff;
+    text-decoration: none;
+}
+
+.wallet-error a:hover {
+    text-decoration: underline;
+}
+
+#noPhantomMsg {
+    margin-top: 15px;
+}
+
+/* Connected wallet info bar */
+.wallet-connected-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px 16px;
+    margin-bottom: 18px;
+    background: rgba(171, 71, 188, 0.15);
+    border: 1px solid rgba(171, 71, 188, 0.3);
+    border-radius: 10px;
+}
+
+.wallet-addr {
+    font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+    color: #ab47bc;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.disconnect-btn {
+    background: rgba(255, 68, 68, 0.15);
+    border: 1px solid rgba(255, 68, 68, 0.3);
+    color: #ff6b6b;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px 10px;
+    transition: all 0.3s;
+}
+
+.disconnect-btn:hover {
+    background: rgba(255, 68, 68, 0.3);
+}
+
+/* ========== Tier Selection ========== */
+
+#startMenu h3 {
+    color: #00d4ff;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+    margin-top: 10px;
+}
+
+.tier-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.tier-loading {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 13px;
+    padding: 20px;
+}
+
+.tier-btn {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tier-btn:hover:not(:disabled) {
+    background: rgba(0, 255, 136, 0.08);
+    border-color: rgba(0, 255, 136, 0.3);
+    transform: translateY(-2px);
+}
+
+.tier-btn.selected {
+    border-color: #00ff88;
+    background: rgba(0, 255, 136, 0.15);
+    box-shadow: 0 4px 20px rgba(0, 255, 136, 0.2);
+}
+
+.tier-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.tier-label {
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.tier-points {
+    font-size: 14px;
+    color: #00d4ff;
+    font-weight: 500;
+}
+
+.tier-sol {
+    font-size: 13px;
+    color: #ffd700;
+    font-family: 'SF Mono', Monaco, monospace;
+    width: 100%;
+    margin-top: 4px;
+}
+
+.tier-eur {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.35);
+    width: 100%;
+}
+
+/* Payment Status */
+.payment-status {
+    text-align: center;
+    font-size: 13px;
+    padding: 8px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    min-height: 24px;
+}
+
+.payment-sending {
+    color: #ffa500;
+    background: rgba(255, 165, 0, 0.1);
+}
+
+.payment-verifying {
+    color: #00d4ff;
+    background: rgba(0, 212, 255, 0.1);
+}
+
+.payment-verified {
+    color: #00ff88;
+    background: rgba(0, 255, 136, 0.1);
+}
+
+.payment-error {
+    color: #ff6b6b;
+    background: rgba(255, 68, 68, 0.1);
+}
+
+/* Play button when payment required */
+.play-btn {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, #00ff88, #00d4ff);
+    color: #0a0a1a;
+    border: none;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-bottom: 12px;
+}
+
+.play-btn:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 35px rgba(0, 255, 136, 0.5);
+}
+
+.play-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ========== In-game SOL HUD ========== */
+
+.sol-hud {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 24px;
+    padding: 14px 28px;
+    background: rgba(10, 10, 26, 0.92);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    border-radius: 14px;
+    z-index: 50;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.sol-hud-balance {
+    color: #ffd700;
+    font-size: 18px;
+    font-weight: 700;
+    font-family: 'SF Mono', Monaco, monospace;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sol-icon {
+    font-size: 22px;
+}
+
+.sol-hud-points {
+    color: #00d4ff;
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* ========== Cashout Panel ========== */
+
+.cashout-panel {
+    position: absolute;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+}
+
+.cashout-btn {
+    padding: 12px 32px;
+    background: linear-gradient(135deg, #ffd700, #ff8c00);
+    color: #0a0a1a;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    animation: pulseGold 2s infinite;
+}
+
+.cashout-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 25px rgba(255, 215, 0, 0.5);
+}
+
+.cashout-countdown {
+    padding: 12px 28px;
+    background: rgba(255, 215, 0, 0.15);
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    border-radius: 12px;
+    color: #ffd700;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    animation: pulseGold 1s infinite;
+}

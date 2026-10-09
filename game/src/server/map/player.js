@@ -91,6 +91,16 @@ exports.Player = class {
         this.screenWidth = null;
         this.screenHeight = null;
         this.timeToMerge = null;
+
+        // === Sol2Earn properties ===
+        this.walletAddress = null;    // Phantom wallet public key
+        this.solBalance = 0;          // SOL accumulated (from entry + eating players)
+        this.entryFeeSol = 0;         // Original entry fee in SOL (excl. platform fee)
+        this.gamePoints = 0;          // In-game points (from eating food)
+        this.isCashingOut = false;    // Whether cashout countdown is active
+        this.cashoutStartTime = null; // Timestamp when cashout started
+        this.tierId = null;           // Entry tier id
+
         this.setLastHeartbeat();
     }
 
@@ -104,6 +114,45 @@ exports.Player = class {
             x: 0,
             y: 0
         };
+    }
+
+    /** Initialize Sol2Earn wallet data after payment verification */
+    initWallet(walletAddress, solBalance, gamePoints, tierId) {
+        this.walletAddress = walletAddress;
+        this.solBalance = solBalance;
+        this.entryFeeSol = solBalance;
+        this.gamePoints = gamePoints;
+        this.tierId = tierId;
+    }
+
+    /** Add SOL from eating another player */
+    addSolFromEat(amount) {
+        this.solBalance += amount;
+    }
+
+    /** Add game points from eating food */
+    addGamePoints(points) {
+        this.gamePoints += points;
+    }
+
+    /** Start cash-out countdown */
+    startCashout() {
+        if (this.isCashingOut) return false;
+        this.isCashingOut = true;
+        this.cashoutStartTime = Date.now();
+        return true;
+    }
+
+    /** Cancel cash-out (e.g., if eaten during countdown) */
+    cancelCashout() {
+        this.isCashingOut = false;
+        this.cashoutStartTime = null;
+    }
+
+    /** Check if cashout countdown has elapsed */
+    isCashoutReady(countdownSeconds) {
+        if (!this.isCashingOut || !this.cashoutStartTime) return false;
+        return (Date.now() - this.cashoutStartTime) >= countdownSeconds * 1000;
     }
 
     clientProvidedData(playerData) {
@@ -334,7 +383,8 @@ exports.PlayerManager = class {
         for (var i = 0; i < Math.min(10, this.data.length); i++) {
             topPlayers.push({
                 id: this.data[i].id,
-                name: this.data[i].name
+                name: this.data[i].name,
+                solBalance: this.data[i].solBalance
             });
         }
         return topPlayers;

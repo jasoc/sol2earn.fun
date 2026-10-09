@@ -121,8 +121,10 @@ const drawCells = (cells, playerConfig, toggleMassState, borders, graph) => {
         graph.strokeStyle = cell.borderColor;
         graph.lineWidth = Math.max(4, cell.radius * 0.05);
         
-        // Add glow for larger cells
-        if (cell.radius > 30) {
+        // Cashout glow effect: pulsing gold glow when cashing out
+        if (cell.isCashingOut) {
+            addGlow(graph, '#ffd700', cell.radius * 0.3);
+        } else if (cell.radius > 30) {
             addGlow(graph, cell.color.replace('100%', '70%'), cell.radius * 0.15);
         }
         
@@ -143,15 +145,45 @@ const drawCells = (cells, playerConfig, toggleMassState, borders, graph) => {
         graph.textAlign = 'center';
         graph.textBaseline = 'middle';
         graph.font = 'bold ' + fontSize + 'px Inter, sans-serif';
-        graph.strokeText(cell.name, cell.x, cell.y);
-        graph.fillText(cell.name, cell.x, cell.y);
+
+        let nameY = cell.y;
+        // If player has SOL balance, shift name up to make room for SOL line
+        if (cell.solBalance > 0) {
+            nameY = cell.y - fontSize * 0.4;
+        }
+
+        graph.strokeText(cell.name, cell.x, nameY);
+        graph.fillText(cell.name, cell.x, nameY);
+
+        // Draw SOL balance under name (if > 0)
+        if (cell.solBalance > 0) {
+            let solFontSize = Math.max(fontSize * 0.6, 9);
+            graph.font = '600 ' + solFontSize + 'px Inter, sans-serif';
+            graph.fillStyle = '#ffd700'; // gold
+            graph.strokeStyle = '#000000';
+            graph.lineWidth = 2;
+            let solText = '◎ ' + cell.solBalance.toFixed(4);
+            let solY = nameY + fontSize * 0.85;
+            graph.strokeText(solText, cell.x, solY);
+            graph.fillText(solText, cell.x, solY);
+            // Reset text color
+            graph.fillStyle = playerConfig.textColor;
+            graph.strokeStyle = playerConfig.textBorder;
+            graph.lineWidth = playerConfig.textBorderSize;
+        }
 
         // Draw the mass (if enabled)
         if (toggleMassState === 1) {
             graph.font = 'bold ' + Math.max(fontSize / 3 * 2, 10) + 'px Inter, sans-serif';
-            if (cell.name.length === 0) fontSize = 0;
-            graph.strokeText(Math.round(cell.mass), cell.x, cell.y + fontSize);
-            graph.fillText(Math.round(cell.mass), cell.x, cell.y + fontSize);
+            let massY = cell.y + fontSize;
+            if (cell.solBalance > 0) {
+                massY = cell.y + fontSize * 1.2;
+            }
+            if (cell.name.length === 0 && cell.solBalance <= 0) massY = cell.y + fontSize;
+            graph.fillStyle = playerConfig.textColor;
+            graph.strokeStyle = playerConfig.textBorder;
+            graph.strokeText(Math.round(cell.mass), cell.x, massY);
+            graph.fillText(Math.round(cell.mass), cell.x, massY);
         }
     }
 };

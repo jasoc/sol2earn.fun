@@ -3,7 +3,7 @@
 <head>
     <!-- Meta Properties -->
     <meta charset="UTF-8">
-    <title>Agar.io Clone</title>
+    <title>Sol2Earn.fun – Play to Earn</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0a0a1a">
     <!-- Fonts -->
@@ -19,6 +19,23 @@
 <body>
     <div id="gameAreaWrapper">
         <div id="status"><span class="title">🏆 Leaderboard</span></div>
+        <!-- In-game HUD: SOL + game points -->
+        <div id="solHud" class="sol-hud" style="display: none;">
+            <div class="sol-hud-balance">
+                <span class="sol-icon">◎</span>
+                <span id="hudSolBalance">0.0000</span> SOL
+            </div>
+            <div class="sol-hud-points">
+                🎮 <span id="hudGamePoints">0</span> pts
+            </div>
+        </div>
+        <!-- Cashout button (in-game) -->
+        <div id="cashoutPanel" class="cashout-panel" style="display: none;">
+            <button id="cashoutBtn" class="cashout-btn">💰 Cash Out</button>
+            <div id="cashoutCountdown" class="cashout-countdown" style="display: none;">
+                <span>Cashing out in </span><span id="cashoutTimer">6</span>s...
+            </div>
+        </div>
         <div class="chatbox" id="chatbox">
             <ul id="chatList" class="chat-list"></ul>
             <input id="chatInput" type="text" class="chat-input" placeholder="Type a message..." maxlength="35" />
@@ -58,10 +75,36 @@
     </div>
     <div id="startMenuWrapper">
         <div id="startMenu">
-            <p>🎮 Agar Clone</p>
-            <input type="text" tabindex="0" autofocus placeholder="Enter your nickname" id="playerNameInput" maxlength="25" />
-            <b class="input-error">Nickname must be alphanumeric only!</b>
-            <button id="startButton">▶ Play Now</button>
+            <p>💰 Sol2Earn.fun</p>
+
+            <!-- Step 1: Connect Wallet -->
+            <div id="walletStep" class="menu-step">
+                <button id="connectWalletBtn" class="wallet-btn">
+                    <img src="https://phantom.app/img/phantom-icon-purple.svg" alt="" width="20" height="20" style="vertical-align:middle; margin-right:6px;">
+                    Connect Phantom Wallet
+                </button>
+                <div id="walletStatus" class="wallet-status"></div>
+                <div id="noPhantomMsg" class="wallet-error" style="display:none;">
+                    Phantom wallet not detected. <a href="https://phantom.app/" target="_blank" rel="noopener">Install Phantom</a>
+                </div>
+            </div>
+
+            <!-- Step 2: Nickname + Tier (shown after wallet connect) -->
+            <div id="entryStep" class="menu-step" style="display:none;">
+                <div class="wallet-connected-info">
+                    <span class="wallet-addr" id="walletAddr">...</span>
+                    <button id="disconnectWalletBtn" class="disconnect-btn" title="Disconnect">✕</button>
+                </div>
+                <input type="text" tabindex="0" placeholder="Enter your nickname" id="playerNameInput" maxlength="25" />
+                <b class="input-error">Nickname must be alphanumeric only!</b>
+                <h3>Select Entry Fee</h3>
+                <div id="tierContainer" class="tier-container">
+                    <p class="tier-loading">Loading tiers...</p>
+                </div>
+                <div id="paymentStatus" class="payment-status"></div>
+                <button id="startButton" class="play-btn" disabled>▶ Play Now</button>
+            </div>
+
             <button id="spectateButton">👁 Spectate</button>
             <button id="settingsButton">⚙ Settings</button>
             <div id="settings">
@@ -76,17 +119,17 @@
             <div id="instructions">
                 <h3>📖 How to Play</h3>
                 <ul>
-                    <li>Move your mouse to control your cell</li>
-                    <li>Eat food and smaller players to grow</li>
+                    <li>Connect your Phantom wallet &amp; pay the entry fee</li>
+                    <li>Eat food to gain game points, eat players to steal their SOL</li>
                     <li>Press <b>Space</b> to split your cell</li>
                     <li>Press <b>W</b> to eject mass</li>
-                    <li>Avoid larger players and viruses!</li>
+                    <li>Cash out to withdraw your SOL (6s countdown)</li>
+                    <li>If you die, you lose all your SOL!</li>
                 </ul>
             </div>
         </div>
     </div>
     <!-- JS -->
-    <script src="//code.jquery.com/jquery-2.2.0.min.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

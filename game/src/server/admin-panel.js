@@ -8,7 +8,7 @@
 const express = require('express');
 const http = require('http');
 const path = require('path');
-const config = require('../../config');
+const config = require('./game-config');
 
 class AdminPanel {
     constructor(gameState) {
@@ -121,6 +121,48 @@ class AdminPanel {
             res.json({ debugToken: token });
         });
 
+        // ========== Hot Config API ==========
+
+        // Get all hot-configurable settings
+        this.app.get('/api/config', this.requireAuth(), (req, res) => {
+            const hotKeys = config.getHotConfigurableSettings();
+            const currentValues = {};
+            for (const key of Object.keys(hotKeys)) {
+                currentValues[key] = {
+                    value: config.get(key),
+                    ...hotKeys[key],
+                };
+            }
+            res.json(currentValues);
+        });
+
+        // Update a single config key
+        this.app.put('/api/config/:key', this.requireAuth(true), (req, res) => {
+            const { key } = req.params;
+            const { value } = req.body;
+            if (value === undefined) {
+                return res.status(400).json({ error: 'Missing value' });
+            }
+            const result = config.set(key, value);
+            if (result.success) {
+                console.log(`[ADMIN] Config updated: ${key} = ${result.newValue}`);
+                res.json({ success: true, key, value: result.newValue });
+            } else {
+                res.status(400).json({ success: false, error: result.error });
+            }
+        });
+
+        // Bulk update config
+        this.app.put('/api/config', this.requireAuth(true), (req, res) => {
+            const changes = req.body;
+            if (!changes || typeof changes !== 'object') {
+                return res.status(400).json({ error: 'Invalid body' });
+            }
+            const results = config.bulkSet(changes);
+            console.log(`[ADMIN] Bulk config update:`, results);
+            res.json(results);
+        });
+
         // Serve admin panel
         this.app.get('/', (req, res) => {
             res.sendFile(path.join(__dirname, '../admin/index.html'));
@@ -162,7 +204,11 @@ class AdminPanel {
             cells: p.cells?.length || 0,
             x: Math.round(p.x || 0),
             y: Math.round(p.y || 0),
-            isAdmin: p.admin || false
+            isAdmin: p.admin || false,
+            walletAddress: p.walletAddress || null,
+            solBalance: p.solBalance || 0,
+            gamePoints: p.gamePoints || 0,
+            isCashingOut: p.isCashingOut || false,
         }));
     }
 

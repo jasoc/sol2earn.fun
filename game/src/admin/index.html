@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agar.io Clone - Admin Panel</title>
+    <title>Sol2Earn.fun - Admin Panel</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -373,6 +373,102 @@
         .refresh-btn:hover {
             background: rgba(0, 255, 136, 0.2);
         }
+
+        /* Config Panel */
+        .config-section {
+            padding: 0 30px;
+            margin-bottom: 30px;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .config-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .config-item label {
+            color: #aaa;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .config-item label .config-range {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .config-item input {
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .config-item input:focus {
+            outline: none;
+            border-color: #00ff88;
+        }
+
+        .config-item input.changed {
+            border-color: #ffa500;
+        }
+
+        .config-actions {
+            display: flex;
+            gap: 10px;
+            padding: 15px 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-save {
+            padding: 10px 24px;
+            background: linear-gradient(135deg, #00ff88, #00d4ff);
+            border: none;
+            border-radius: 8px;
+            color: #0a0a1a;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn-save:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .config-status {
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            align-self: center;
+        }
+
+        .config-status.success {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+        }
+
+        .config-status.error {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff6b6b;
+        }
     </style>
 </head>
 <body>
@@ -422,6 +518,21 @@
         </div>
 
         <div class="main-content">
+            <!-- Config Panel (Super Admin only) -->
+            <div class="panel config-section" id="configPanel" style="display:none; grid-column: 1 / -1;">
+                <div class="panel-header">
+                    <h2>⚙️ Game Configuration (Hot-Config)</h2>
+                    <button class="refresh-btn" onclick="loadConfig()">Refresh</button>
+                </div>
+                <div class="config-grid" id="configGrid">
+                    <div class="no-data">Loading config...</div>
+                </div>
+                <div class="config-actions">
+                    <button class="btn-save" id="saveConfigBtn" disabled onclick="saveConfig()">💾 Save Changes</button>
+                    <span class="config-status" id="configStatus"></span>
+                </div>
+            </div>
+
             <div class="panel">
                 <div class="panel-header">
                     <h2>👥 Active Players</h2>
@@ -433,12 +544,13 @@
                             <tr>
                                 <th>Name</th>
                                 <th>Mass</th>
+                                <th>SOL</th>
                                 <th>Cells</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="playersTable">
-                            <tr><td colspan="4" class="no-data">No players online</td></tr>
+                            <tr><td colspan="5" class="no-data">No players online</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -466,6 +578,7 @@
             loadStats();
             loadPlayers();
             loadChat();
+            if (isSuperAdmin) loadConfig();
         }
 
         // Login form handler
@@ -491,6 +604,7 @@
                     loadStats();
                     loadPlayers();
                     loadChat();
+                    if (isSuperAdmin) loadConfig();
                 } else {
                     showError(data.error || 'Invalid password');
                 }
@@ -525,6 +639,7 @@
             if (isSuperAdmin) {
                 badge.textContent = 'Super Admin';
                 badge.className = 'badge super-admin';
+                document.getElementById('configPanel').style.display = 'block';
             } else {
                 badge.textContent = 'Admin';
                 badge.className = 'badge admin';
@@ -558,14 +673,15 @@
             const tbody = document.getElementById('playersTable');
             
             if (!players || players.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="no-data">No players online</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="no-data">No players online</td></tr>';
                 return;
             }
 
             tbody.innerHTML = players.map(p => `
                 <tr>
-                    <td>${escapeHtml(p.name)}</td>
+                    <td>${escapeHtml(p.name)}${p.isCashingOut ? ' 💰' : ''}</td>
                     <td>${p.mass.toLocaleString()}</td>
+                    <td>${p.solBalance > 0 ? '◎ ' + p.solBalance.toFixed(4) : '-'}</td>
                     <td>${p.cells}</td>
                     <td>
                         ${isSuperAdmin ? `<button class="btn-spectate" onclick="spectatePlayer('${p.id}')">👁️</button>` : ''}
@@ -625,6 +741,110 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // ========== Config Management ==========
+        let configOriginalValues = {};
+
+        async function loadConfig() {
+            if (!isSuperAdmin) return;
+            const config = await apiCall('/api/config');
+            if (!config) return;
+
+            const grid = document.getElementById('configGrid');
+            configOriginalValues = {};
+            let html = '';
+
+            for (const [key, info] of Object.entries(config)) {
+                configOriginalValues[key] = info.value;
+                const inputType = info.type === 'number' ? 'number' : 'text';
+                const rangeText = (info.min !== undefined && info.max !== undefined) 
+                    ? `<span class="config-range">${info.min} – ${info.max}</span>` : '';
+
+                html += `<div class="config-item">
+                    <label>${key} ${rangeText}</label>
+                    <input type="${inputType}" id="cfg_${key}" value="${info.value}" 
+                        ${info.min !== undefined ? 'min="' + info.min + '"' : ''}
+                        ${info.max !== undefined ? 'max="' + info.max + '"' : ''}
+                        ${info.type === 'number' ? 'step="any"' : ''}
+                        onchange="markConfigChanged(this, '${key}')"
+                        oninput="markConfigChanged(this, '${key}')" />
+                </div>`;
+            }
+            grid.innerHTML = html;
+            document.getElementById('saveConfigBtn').disabled = true;
+            setConfigStatus('');
+        }
+
+        function markConfigChanged(input, key) {
+            const original = configOriginalValues[key];
+            const current = input.type === 'number' ? parseFloat(input.value) : input.value;
+            
+            if (current !== original) {
+                input.classList.add('changed');
+            } else {
+                input.classList.remove('changed');
+            }
+
+            // Enable save if any value changed
+            const anyChanged = document.querySelectorAll('.config-item input.changed').length > 0;
+            document.getElementById('saveConfigBtn').disabled = !anyChanged;
+        }
+
+        async function saveConfig() {
+            const changedInputs = document.querySelectorAll('.config-item input.changed');
+            if (changedInputs.length === 0) return;
+
+            const changes = {};
+            changedInputs.forEach(input => {
+                const key = input.id.replace('cfg_', '');
+                changes[key] = input.type === 'number' ? parseFloat(input.value) : input.value;
+            });
+
+            try {
+                const res = await fetch('/api/config', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Session-Id': sessionId,
+                    },
+                    body: JSON.stringify(changes),
+                });
+                const results = await res.json();
+
+                let allOk = true;
+                for (const [key, result] of Object.entries(results)) {
+                    if (result.success) {
+                        const val = result.newValue !== undefined ? result.newValue : result.value;
+                        configOriginalValues[key] = val;
+                        const input = document.getElementById('cfg_' + key);
+                        if (input) {
+                            input.value = val;
+                            input.classList.remove('changed');
+                        }
+                    } else {
+                        allOk = false;
+                    }
+                }
+
+                if (allOk) {
+                    setConfigStatus('✅ Config saved (applied immediately)', 'success');
+                } else {
+                    setConfigStatus('⚠️ Some settings failed', 'error');
+                }
+                document.getElementById('saveConfigBtn').disabled = true;
+            } catch (err) {
+                setConfigStatus('❌ Save failed', 'error');
+            }
+        }
+
+        function setConfigStatus(msg, type) {
+            const el = document.getElementById('configStatus');
+            el.textContent = msg;
+            el.className = 'config-status' + (type ? ' ' + type : '');
+            if (msg) {
+                setTimeout(() => { el.textContent = ''; el.className = 'config-status'; }, 5000);
+            }
         }
 
         // Auto refresh every 5 seconds

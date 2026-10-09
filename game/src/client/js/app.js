@@ -3,6 +3,7 @@ var render = require('./render');
 var ChatClient = require('./chat-client');
 var Canvas = require('./canvas');
 var global = require('./global');
+var PhantomWallet = require('./phantom-wallet');
 
 var playerNameInput = document.getElementById('playerNameInput');
 var socket;
@@ -37,6 +38,13 @@ function startGame(type) {
     window.chat.registerFunctions();
     window.canvas.socket = socket;
     global.socket = socket;
+
+    // Show HUD and cashout panel for paying players
+    if (type === 'player' && PhantomWallet.paymentVerified) {
+        document.getElementById('solHud').style.display = 'flex';
+        document.getElementById('cashoutPanel').style.display = 'block';
+        updateHUD();
+    }
 }
 
 // Checks if the nick chosen contains valid alphanumeric characters (and underscores).
@@ -48,17 +56,104 @@ function validNick() {
 
 window.onload = function () {
 
-    var btn = document.getElementById('startButton'),
-        btnS = document.getElementById('spectateButton'),
+    var btnS = document.getElementById('spectateButton'),
         nickErrorText = document.querySelector('#startMenu .input-error');
 
     btnS.onclick = function () {
         startGame('spectator');
     };
 
-    btn.onclick = function () {
+    // ========== Wallet Connection Flow ==========
+    var connectWalletBtn = document.getElementById('connectWalletBtn');
+    var disconnectWalletBtn = document.getElementById('disconnectWalletBtn');
+    var walletStep = document.getElementById('walletStep');
+    var entryStep = document.getElementById('entryStep');
+    var walletStatus = document.getElementById('walletStatus');
+    var noPhantomMsg = document.getElementById('noPhantomMsg');
+    var startButton = document.getElementById('startButton');
+    var tierContainer = document.getElementById('tierContainer');
 
-        // Checks if the nick is valid.
+    // Check if Phantom is available
+    if (!PhantomWallet.isPhantomInstalled()) {
+        noPhantomMsg.style.display = 'block';
+        connectWalletBtn.disabled = true;
+        connectWalletBtn.style.opacity = '0.5';
+    }
+
+    connectWalletBtn.onclick = async function () {
+        connectWalletBtn.disabled = true;
+        walletStatus.textContent = 'Connecting...';
+        walletStatus.className = 'wallet-status';
+
+        var address = await PhantomWallet.connect();
+        if (address) {
+            walletStatus.textContent = '';
+            walletStep.style.display = 'none';
+            entryStep.style.display = 'block';
+            document.getElementById('walletAddr').textContent =
+                address.substring(0, 4) + '...' + address.substring(address.length - 4);
+
+            // Fetch tiers
+            await PhantomWallet.fetchTiers();
+            tierContainer.innerHTML = PhantomWallet.buildTierHTML();
+            bindTierButtons();
+        } else {
+            walletStatus.textContent = 'Connection failed. Please try again.';
+            walletStatus.className = 'wallet-status wallet-error';
+            connectWalletBtn.disabled = false;
+        }
+    };
+
+    disconnectWalletBtn.onclick = async function () {
+        await PhantomWallet.disconnect();
+        entryStep.style.display = 'none';
+        walletStep.style.display = 'block';
+        connectWalletBtn.disabled = false;
+        startButton.disabled = true;
+        PhantomWallet.updatePaymentStatus('idle');
+    };
+
+    function bindTierButtons() {
+        var tierBtns = document.querySelectorAll('.tier-btn');
+        tierBtns.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var tierId = this.getAttribute('data-tier');
+
+                // Deselect all
+                tierBtns.forEach(function (b) { b.classList.remove('selected'); });
+                this.classList.add('selected');
+
+                // Initiate payment
+                if (!socket) {
+                    socket = io({ query: "type=player" });
+                    setupSocket(socket);
+                }
+
+                PhantomWallet.selectTierAndPay(tierId, socket,
+                    function onSuccess(result) {
+                        startButton.disabled = false;
+                        global.solBalance = result.solBalance;
+                        global.gamePoints = result.gamePoints;
+                    },
+                    function onError(errorMsg) {
+                        window.alert('Payment error: ' + errorMsg);
+                        // Re-enable tier buttons
+                        tierBtns.forEach(function (b) { b.classList.remove('selected'); b.disabled = false; });
+                    }
+                );
+
+                // Disable all tier buttons during payment
+                tierBtns.forEach(function (b) { b.disabled = true; });
+            });
+        });
+    }
+
+    // Start button (enabled after payment verification)
+    startButton.onclick = function () {
+        if (!PhantomWallet.paymentVerified) {
+            window.alert('Please complete payment first.');
+            return;
+        }
         if (validNick()) {
             nickErrorText.style.opacity = 0;
             startGame('player');
@@ -66,6 +161,19 @@ window.onload = function () {
             nickErrorText.style.opacity = 1;
         }
     };
+
+    // Also support Enter key in nickname field
+    playerNameInput.addEventListener('keypress', function (e) {
+        var key = e.which || e.keyCode;
+        if (key === global.KEY_ENTER) {
+            if (PhantomWallet.paymentVerified && validNick()) {
+                nickErrorText.style.opacity = 0;
+                startGame('player');
+            } else if (!validNick()) {
+                nickErrorText.style.opacity = 1;
+            }
+        }
+    });
 
     var settingsMenu = document.getElementById('settingsButton');
     var settings = document.getElementById('settings');
@@ -78,16 +186,10 @@ window.onload = function () {
         }
     };
 
-    playerNameInput.addEventListener('keypress', function (e) {
-        var key = e.which || e.keyCode;
-
-        if (key === global.KEY_ENTER) {
-            if (validNick()) {
-                nickErrorText.style.opacity = 0;
-                startGame('player');
-            } else {
-                nickErrorText.style.opacity = 1;
-            }
+    // ========== Cashout Button ==========
+    document.getElementById('cashoutBtn').addEventListener('click', function () {
+        if (socket && global.gameStart) {
+            socket.emit('cashout');
         }
     });
 };
@@ -120,6 +222,13 @@ var leaderboard = [];
 var target = { x: player.x, y: player.y };
 global.target = target;
 
+// SOL tracking
+global.solBalance = 0;
+global.gamePoints = 0;
+global.walletAddress = null;
+global.cashingOut = false;
+global.cashoutSecondsLeft = 0;
+
 window.canvas = new Canvas();
 window.chat = new ChatClient();
 
@@ -138,12 +247,12 @@ roundFoodSetting.onchange = settings.toggleRoundFood;
 var c = window.canvas.cv;
 var graph = c.getContext('2d');
 
-$("#feed").click(function () {
+document.getElementById("feed").addEventListener("click", function () {
     socket.emit('1');
     window.canvas.reenviar = false;
 });
 
-$("#split").click(function () {
+document.getElementById("split").addEventListener("click", function () {
     socket.emit('2');
     window.canvas.reenviar = false;
 });
@@ -202,9 +311,6 @@ function setupSocket(socket) {
 
     socket.on('playerDied', (data) => {
         const player = isUnnamedCell(data.playerEatenName) ? 'An unnamed cell' : data.playerEatenName;
-        //const killer = isUnnamedCell(data.playerWhoAtePlayerName) ? 'An unnamed cell' : data.playerWhoAtePlayerName;
-
-        //window.chat.addSystemLine('{GAME} - <b>' + (player) + '</b> was eaten by <b>' + (killer) + '</b>');
         window.chat.addSystemLine('{GAME} - <b>' + (player) + '</b> was eaten');
     });
 
@@ -221,19 +327,19 @@ function setupSocket(socket) {
         var status = '<span class="title">Leaderboard</span>';
         for (var i = 0; i < leaderboard.length; i++) {
             status += '<br />';
+            var solInfo = leaderboard[i].solBalance ? ' ◎' + leaderboard[i].solBalance.toFixed(3) : '';
             if (leaderboard[i].id == player.id) {
                 if (leaderboard[i].name.length !== 0)
-                    status += '<span class="me">' + (i + 1) + '. ' + leaderboard[i].name + "</span>";
+                    status += '<span class="me">' + (i + 1) + '. ' + leaderboard[i].name + solInfo + "</span>";
                 else
-                    status += '<span class="me">' + (i + 1) + ". An unnamed cell</span>";
+                    status += '<span class="me">' + (i + 1) + ". An unnamed cell" + solInfo + "</span>";
             } else {
                 if (leaderboard[i].name.length !== 0)
-                    status += (i + 1) + '. ' + leaderboard[i].name;
+                    status += (i + 1) + '. ' + leaderboard[i].name + solInfo;
                 else
-                    status += (i + 1) + '. An unnamed cell';
+                    status += (i + 1) + '. An unnamed cell' + solInfo;
             }
         }
-        //status += '<br />Players: ' + data.players;
         document.getElementById('status').innerHTML = status;
     });
 
@@ -254,6 +360,17 @@ function setupSocket(socket) {
             player.hue = playerData.hue;
             player.massTotal = playerData.massTotal;
             player.cells = playerData.cells;
+            // Update SOL tracking from server
+            if (typeof playerData.solBalance !== 'undefined') {
+                global.solBalance = playerData.solBalance;
+            }
+            if (typeof playerData.gamePoints !== 'undefined') {
+                global.gamePoints = playerData.gamePoints;
+            }
+            if (typeof playerData.isCashingOut !== 'undefined') {
+                global.cashingOut = playerData.isCashingOut;
+            }
+            updateHUD();
         }
         users = userData;
         foods = foodsList;
@@ -261,13 +378,69 @@ function setupSocket(socket) {
         fireFood = massList;
     });
 
+    // ========== SOL Balance Events ==========
+    socket.on('solBalanceUpdate', function (data) {
+        global.solBalance = data.solBalance;
+        updateHUD();
+        if (data.from) {
+            window.chat.addSystemLine('💰 You ate <b>' + data.from + '</b> and gained <b>' + data.gained.toFixed(4) + ' SOL</b>!');
+        }
+    });
+
+    // ========== Cashout Events ==========
+    socket.on('cashoutStarted', function (data) {
+        global.cashingOut = true;
+        global.cashoutSecondsLeft = data.countdown;
+        document.getElementById('cashoutBtn').style.display = 'none';
+        document.getElementById('cashoutCountdown').style.display = 'block';
+        startCashoutCountdown(data.countdown);
+    });
+
+    socket.on('cashoutComplete', function (data) {
+        global.cashingOut = false;
+        global.gameStart = false;
+        render.drawErrorMessage('Cashed out ' + data.amount.toFixed(4) + ' SOL! TX: ' + data.txSignature.substring(0, 8) + '...', graph, global.screen);
+        window.setTimeout(function () {
+            document.getElementById('gameAreaWrapper').style.opacity = 0;
+            document.getElementById('startMenuWrapper').style.maxHeight = '1000px';
+            document.getElementById('solHud').style.display = 'none';
+            document.getElementById('cashoutPanel').style.display = 'none';
+            if (global.animLoopHandle) {
+                window.cancelAnimationFrame(global.animLoopHandle);
+                global.animLoopHandle = undefined;
+            }
+        }, 3000);
+    });
+
+    socket.on('cashoutResult', function (data) {
+        if (!data.success) {
+            global.cashingOut = false;
+            document.getElementById('cashoutBtn').style.display = 'block';
+            document.getElementById('cashoutCountdown').style.display = 'none';
+            window.chat.addSystemLine('❌ Cashout failed: ' + data.error);
+        }
+    });
+
+    socket.on('cashoutExit', function () {
+        // Server disconnected us after cashout
+    });
+
     // Death.
     socket.on('RIP', function () {
         global.gameStart = false;
-        render.drawErrorMessage('You died!', graph, global.screen);
+        global.cashingOut = false;
+        var deathMsg = 'You died!';
+        if (global.solBalance > 0) {
+            deathMsg += ' Lost ' + global.solBalance.toFixed(4) + ' SOL';
+        }
+        global.solBalance = 0;
+        global.gamePoints = 0;
+        render.drawErrorMessage(deathMsg, graph, global.screen);
         window.setTimeout(() => {
             document.getElementById('gameAreaWrapper').style.opacity = 0;
             document.getElementById('startMenuWrapper').style.maxHeight = '1000px';
+            document.getElementById('solHud').style.display = 'none';
+            document.getElementById('cashoutPanel').style.display = 'none';
             if (global.animLoopHandle) {
                 window.cancelAnimationFrame(global.animLoopHandle);
                 global.animLoopHandle = undefined;
@@ -286,9 +459,47 @@ function setupSocket(socket) {
         }
         socket.close();
     });
+
+    // ========== Window Blur → Auto-Cashout ==========
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden && global.gameStart && global.solBalance > 0) {
+            socket.emit('windowBlur');
+        }
+    });
+
+    window.addEventListener('blur', function () {
+        if (global.gameStart && global.solBalance > 0) {
+            socket.emit('windowBlur');
+        }
+    });
 }
 
 const isUnnamedCell = (name) => name.length < 1;
+
+// ========== HUD + Cashout Helpers ==========
+
+function updateHUD() {
+    var solEl = document.getElementById('hudSolBalance');
+    var ptsEl = document.getElementById('hudGamePoints');
+    if (solEl) solEl.textContent = (global.solBalance || 0).toFixed(4);
+    if (ptsEl) ptsEl.textContent = Math.round(global.gamePoints || 0);
+}
+
+var cashoutInterval = null;
+function startCashoutCountdown(seconds) {
+    var remaining = seconds;
+    var timerEl = document.getElementById('cashoutTimer');
+    if (timerEl) timerEl.textContent = remaining;
+    if (cashoutInterval) clearInterval(cashoutInterval);
+    cashoutInterval = setInterval(function () {
+        remaining--;
+        if (timerEl) timerEl.textContent = Math.max(0, remaining);
+        if (remaining <= 0) {
+            clearInterval(cashoutInterval);
+            cashoutInterval = null;
+        }
+    }, 1000);
+}
 
 const getPosition = (entity, player, screen) => {
     return {
@@ -331,12 +542,6 @@ function gameLoop() {
             let position = getPosition(fireFood, player, global.screen);
             render.drawFireFood(position, fireFood, playerConfig, graph);
         });
-        viruses.forEach(virus => {
-            let position = getPosition(virus, player, global.screen);
-            render.drawVirus(position, virus, graph);
-        });
-
-
         let borders = { // Position of the borders on the screen
             left: global.screen.width / 2 - player.x,
             right: global.screen.width / 2 + global.game.width - player.x,
@@ -351,6 +556,8 @@ function gameLoop() {
         for (var i = 0; i < users.length; i++) {
             let color = 'hsl(' + users[i].hue + ', 100%, 50%)';
             let borderColor = 'hsl(' + users[i].hue + ', 100%, 45%)';
+            let solBalance = users[i].solBalance || 0;
+            let isCashingOut = users[i].isCashingOut || false;
             for (var j = 0; j < users[i].cells.length; j++) {
                 cellsToDraw.push({
                     color: color,
@@ -359,7 +566,9 @@ function gameLoop() {
                     name: users[i].name,
                     radius: users[i].cells[j].radius,
                     x: users[i].cells[j].x - player.x + global.screen.width / 2,
-                    y: users[i].cells[j].y - player.y + global.screen.height / 2
+                    y: users[i].cells[j].y - player.y + global.screen.height / 2,
+                    solBalance: solBalance,
+                    isCashingOut: isCashingOut,
                 });
             }
         }
@@ -367,6 +576,12 @@ function gameLoop() {
             return obj1.mass - obj2.mass;
         });
         render.drawCells(cellsToDraw, playerConfig, global.toggleMassState, borders, graph);
+
+        // Draw viruses after cells so players can hide underneath them
+        viruses.forEach(virus => {
+            let position = getPosition(virus, player, global.screen);
+            render.drawVirus(position, virus, graph);
+        });
 
         socket.emit('0', window.canvas.target); // playerSendTarget "Heartbeat".
     }

@@ -50,7 +50,11 @@ exports.Map = class {
                     massTotal: Math.round(player.massTotal),
                     hue: player.hue,
                     id: player.id,
-                    name: player.name
+                    name: player.name,
+                    solBalance: player.solBalance || 0,
+                    gamePoints: player.gamePoints || 0,
+                    isCashingOut: player.isCashingOut || false,
+                    cashoutStartTime: player.cashoutStartTime || null,
                 };
             }
 
